@@ -1,0 +1,49 @@
+version: '2'
+
+services:
+  web:
+    restart: 'always'
+    build: .
+    ports:
+      - '3000:3000'
+    links:
+      - postgres:db
+    volumes:
+      - .:/app
+      # to deal with this problem
+      # http://stackoverflow.com/a/32785014/5998767
+      # http://jdlm.info/articles/2016/03/06/lessons-building-node-app-docker.html
+      - /app/node_modules
+    env_file: ./containers/.env
+    command: npm start
+
+  nginx:
+    restart: 'always'
+    build: ./webserver/
+    ports:
+      - '8080:443'
+    volumes:
+      - ./certificates/:/etc/ssl/
+    env_file: ./containers/.env
+    links:
+      - web:web
+    command: nginx -g 'daemon off;'
+
+  data:
+    restart: 'no'
+    image: postgres:alpine
+    volumes:
+      - /var/lib/postgresql
+    env_file: ./containers/.env
+    command: ls
+
+  postgres:
+    restart: 'always'
+    image: postgres:alpine
+    volumes_from:
+      - data
+    ports:
+      - '5432:5432'
+    expose:
+      - '5432'
+    env_file: ./containers/.env
